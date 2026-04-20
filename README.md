@@ -71,3 +71,95 @@ charges = np.expm1(pred_log_charges)
 ## Notes
 - If ONNX conversion raises feature-name errors, use the latest export cell version that remaps booster feature names to `f0, f1, ...`.
 - Keep package versions consistent across training and export environments (`xgboost`, `onnxmltools`, `onnx`).
+
+
+
+Input yang diperlukan
+Dari model kamu, urutan feature_cols yang dipakai adalah:
+
+age
+age_squared
+bmi
+children
+gender_encoded
+smoker_encoded
+region_northwest
+region_southeast
+region_southwest
+smoker_bmi
+Catatan:
+
+age_squared = age * age
+smoker_bmi = smoker_encoded * bmi
+Region pakai one-hot (3 kolom), jadi hanya salah satu biasanya 1, sisanya 0 (atau semua 0 kalau baseline region yang tidak di-encode).
+Contoh Swift (ONNX Runtime)
+Berikut contoh alur inferensi (konsepnya):
+
+import Foundation
+import onnxruntime_objc
+struct ChargesInput {
+    let age: Float
+    let bmi: Float
+    let children: Float
+    let genderEncoded: Float      // 0/1
+    let smokerEncoded: Float      // 0/1
+    let regionNorthwest: Float    // 0/1
+    let regionSoutheast: Float    // 0/1
+    let regionSouthwest: Float    // 0/1
+}
+final class ChargesPredictor {
+    private let env: ORTEnv
+    private let session: ORTSession
+    init(modelPath: String) throws {
+        env = try ORTEnv(loggingLevel: ORTLoggingLevel.warning)
+        let options = try ORTSessionOptions()
+        session = try ORTSession(env: env, modelPath: modelPath, sessionOptions: options)
+    }
+    func predict(_ x: ChargesInput) throws -> Double {
+        let ageSquared = x.age * x.age
+        let smokerBMI = x.smokerEncoded * x.bmi
+        // HARUS sama persis dengan urutan feature_cols saat training/export
+        var features: [Float] = [
+            x.age,
+            ageSquared,
+            x.bmi,
+            x.children,
+            x.genderEncoded,
+            x.smokerEncoded,
+            x.regionNorthwest,
+            x.regionSoutheast,
+            x.regionSouthwest,
+            smokerBMI
+        ]
+        // shape: [1, 10]
+        let shape: [NSNumber] = [1, 10]
+        let inputTensor = try ORTValue(
+            tensorData: Data(bytes: &features, count: features.count * MemoryLayout<Float>.size),
+            elementType: ORTTensorElementDataType.float,
+            shape: shape
+        )
+        // "input" sesuai export cell ONNX kamu
+        let outputs = try session.run(
+            withInputs: ["input": inputTensor],
+            outputNames: nil,
+            runOptions: nil
+        )
+        // Ambil output pertama (prediksi log-space)
+        guard let firstOutput = outputs.first?.value else {
+            throw NSError(domain: "PredictError", code: -1, userInfo: [NSLocalizedDescriptionKey: "No model output"])
+        }
+        let outputData = try firstOutput.tensorData()
+        let predLog = outputData.withUnsafeBytes { ptr -> Float in
+            ptr.bindMemory(to: Float.self)[0]
+        }
+        // Model output masih log1p(charges) -> balik ke charges
+        let charges = Foundation.expm1(Double(predLog))
+        return charges
+    }
+}
+Hal penting biar prediksi benar
+Urutan input wajib identik dengan feature_cols.
+Tipe data gunakan Float32.
+Model output kamu masih log-space, jadi wajib expm1.
+Nama input ONNX dari export kamu adalah "input".
+Kalau mau, aku bisa kasih versi helper function yang langsung menerima data mentah user (mis. "male", "yes", "southeast") lalu otomatis encode ke 10 fitur di atas.
