@@ -1,0 +1,29 @@
+{
+  "input_name": "input",
+  "training_feature_order": [
+    "age",
+    "age_squared",
+    "bmi",
+    "children",
+    "gender_encoded",
+    "smoker_encoded",
+    "region_northwest",
+    "region_southeast",
+    "region_southwest",
+    "smoker_bmi"
+  ],
+  "onnx_feature_alias": [
+    "f0",
+    "f1",
+    "f2",
+    "f3",
+    "f4",
+    "f5",
+    "f6",
+    "f7",
+    "f8",
+    "f9"
+  ],
+  "target_space": "log1p(charges)",
+  "postprocess": "expm1"
+}
