@@ -7,3 +7,5 @@ seaborn
 feature_engine
 shap
 jinja2
+coremltools
+pathlib
