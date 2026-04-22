@@ -4,3 +4,6 @@ scikit-learn
 xgboost
 matplotlib
 seaborn
+feature_engine
+shap
+jinja2

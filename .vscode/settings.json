@@ -11,5 +11,6 @@
     "**/*.mlmodel": true
   },
   "python.analysis.indexing": false,
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "basic",
+  "cursorpyright.analysis.typeCheckingMode": "basic"
 }
