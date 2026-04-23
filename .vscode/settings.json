@@ -1,0 +1,16 @@
+{
+  "files.exclude": {
+    "**/.venv": true
+  },
+  "search.exclude": {
+    "**/.venv": true
+  },
+  "files.watcherExclude": {
+    "**/.venv/**": true,
+    "**/*.onnx": true,
+    "**/*.mlmodel": true
+  },
+  "python.analysis.indexing": false,
+  "python.analysis.typeCheckingMode": "basic",
+  "cursorpyright.analysis.typeCheckingMode": "basic"
+}
